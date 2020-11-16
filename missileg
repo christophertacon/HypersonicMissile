@@ -1,0 +1,201 @@
+set kerbinRadius to 600000.
+
+print "LAUNCH SEQUENCE".
+
+lock throttle to 1.0.
+
+lock steering to up + R(0,0,180).
+
+
+
+stage.
+
+print "SPOOLING ENGINE".
+
+wait 5.
+
+
+
+print "LAUNCH".
+
+stage.
+
+
+
+wait 10.
+
+
+
+print "LOCKING ON TARGET".
+
+set targetvessel to vessel("Target").
+
+set targetheading to targetvessel:heading.
+
+lock steering to heading(targetheading, 75).
+
+
+
+
+wait 39.
+
+
+
+"EJECT BOOSTERS".
+
+stage.
+
+
+
+print "STARTING CRUISE".
+
+wait 5.
+
+
+
+set gotoEndGame to false.
+
+set pitchOffset to 5.
+
+
+
+until gotoEndGame {
+
+
+   set altError to (21000 - altitude)/21000.
+
+   set P to altError * 10.
+
+   set D to -verticalspeed/1000 * 10.
+
+   set controller to (P + D).
+
+   if controller > 1 { set controller to 1. }.
+
+   if controller < -1 { set controller to -1. }.
+
+   set output to (controller * 45) + pitchOffset.
+
+   
+
+   set phi1 to latitude.
+
+   set phi2 to targetvessel:latitude.
+
+   set deltaPhi to (latitude - targetvessel:latitude).
+
+   set deltaLam to (longitude - targetvessel:longitude).
+
+
+
+   set a to sin(deltaPhi/2.0)^2 + cos(phi1) * cos(phi2) * sin(deltaLam/2.0)^2.
+
+
+
+   set c to 2 * arctan2(sqrt(a),sqrt(1-a)) * constant:pi/180.0.
+
+
+
+   set distance to (c * kerbinRadius).    
+
+
+
+   set targetheading to targetvessel:heading.
+
+   lock steering to heading(targetheading, output).
+
+   
+
+   set speedError to (groundspeed)/980.0.
+
+   if speedError > 1 {
+
+      lock throttle to (0.8/speedError).
+
+   }
+
+   else {
+
+      lock throttle to 1.0.
+
+   }
+
+   
+
+   if distance < 70000 { set gotoEndGame to true. }
+
+
+
+   print "CRUISE".
+   print "Heading: " + targetheading + " Pitch: " + output.
+
+   print "Throttle " + throttle + " Distance: " + distance/1000. 
+
+}
+
+
+set glideAngle to -arctan2(altitude - targetvessel:altitude, distance).
+
+
+print "ENDGAME".
+
+until false {
+
+
+   set phi1 to latitude.
+
+   set phi2 to targetvessel:latitude.
+
+   set deltaPhi to (latitude - targetvessel:latitude).
+
+   set deltaLam to (longitude - targetvessel:longitude).
+
+
+
+   set a to sin(deltaPhi/2.0) * sin(deltaPhi/2.0) + cos(phi1) * cos(phi2) * sin(deltaLam/2.0) * sin(deltaLam/2.0).
+
+
+
+   set c to 2 * arctan2(sqrt(a),sqrt(1-a)) * constant:pi/180.0.
+
+
+
+   set distance to (c * kerbinRadius).    
+
+
+
+   set desiredAlt to distance * tan(-glideAngle).
+   set currentAlt to altitude - targetvessel:altitude.
+   set glideCorrector to currentAlt - desiredAlt.
+   set pitchAngle to -glideCorrector/500.
+   if pitchAngle > 50 { set pitchAngle to 50. }
+   if pitchAngle < -30 { set pitchAngle to -30. }
+
+
+   set targetheading to targetvessel:heading.
+
+   lock steering to heading(targetheading, pitchAngle).
+
+
+
+   set speedError to (groundspeed)/900.0.
+
+   if speedError > 1 {
+
+      lock throttle to (0.5/speedError).
+
+   }
+
+   else {
+
+      lock throttle to 1.0.
+
+   }
+
+   print "ENDGAME".
+   print "Heading: " + targetheading + " Pitch: " + pitchAngle.
+
+   print "Throttle " + throttle + " Distance: " + distance/1000.
+   print "GlideCorrect: " + glideCorrector. 
+
+}
